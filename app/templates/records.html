@@ -1,0 +1,40 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Registros de Usuarios</title>
+    <link rel="stylesheet" type="text/css" href="{{ url_for('static', filename='css/styles.css') }}">
+</head>
+<body>
+
+<div class="container">
+    <h1>Registros de Usuarios</h1>
+
+    <table border="1" cellpadding="10" cellspacing="0">
+        <thead>
+            <tr>
+                <th>Email</th>
+                <th>Nombre de Usuario</th>
+                <th>DNI</th>
+                <th>Fecha de Nacimiento</th>
+            </tr>
+        </thead>
+        <tbody>
+            {% for email, user in users.items() %}
+            <tr>
+                <td>{{ email }}</td>
+                <td>{{ user.username }}</td>
+                <td>{{ user.dni }}</td>
+                <td>{{ user.dob }}</td>
+
+            </tr>
+            {% endfor %}
+        </tbody>
+    </table>
+
+    <a href="/"><button>Volver al Inicio</button></a>
+</div>
+
+</body>
+</html>

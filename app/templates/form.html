@@ -1,0 +1,82 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Registro</title>
+
+    <!-- Bootstrap CSS -->
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
+</head>
+<body>
+    <div class="container mt-5">
+        <!-- Title -->
+        <h1 class="text-center mb-4">Registro de Usuario</h1>
+        {% if error %}
+            <div class="alert alert-danger text-center" role="alert">
+                {{ error }}
+            </div>
+        {% endif %}
+        <!-- Registration Form -->
+        <div class="card shadow">
+            <div class="card-body">
+                <form action="/api/users" method="POST">
+                    <!-- Nombre -->
+                    <div class="mb-3">
+                        <label for="username" class="form-label">Nombre</label>
+                        <input type="text" class="form-control" id="nombre" name="nombre" placeholder="Ingrese su nombre" required>
+                    </div>
+                    <!-- Appelidos -->
+                    <div class="mb-3">
+                        <label for="username" class="form-label">Apellidos</label>
+                        <input type="text" class="form-control" id="Apellidos" name="Apellidos" placeholder="Ingrese sus pellidos" required>
+                    </div>
+                    <!-- Username -->
+                    <div class="mb-3">
+                        <label for="username" class="form-label">Nombre de Usuario</label>
+                        <input type="text" class="form-control" id="username" name="username" placeholder="Ingrese su nombre de usuario" required>
+                    </div>
+
+                    <!-- Email -->
+                    <div class="mb-3">
+                        <label for="email" class="form-label">Correo Electrónico</label>
+                        <input type="email" class="form-control" id="email" name="email" placeholder="Ingrese su correo electrónico" required>
+                    </div>
+
+                    <!-- Password -->
+                    <div class="mb-3">
+                        <label for="password" class="form-label">Contraseña</label>
+                        <input type="password" class="form-control" id="password" name="password" placeholder="Ingrese su contraseña" required>
+                    </div>
+
+                    <!-- DNI -->
+                    <div class="mb-3">
+                        <label for="dni" class="form-label">DNI</label>
+                        <input type="text" class="form-control" id="dni" name="dni" placeholder="Ingrese su DNI" required>
+                    </div>
+
+                    <!-- Date of Birth -->
+                    <div class="mb-3">
+                        <label for="dob" class="form-label">Fecha de Nacimiento</label>
+                        <input type="date" class="form-control" id="dob" name="dob" required>
+                    </div>
+
+                    <!-- Submit Button -->
+                    <div class="d-grid gap-2">
+                        <button type="submit" class="btn btn-primary btn-lg">Registrar</button>
+                    </div>
+                </form>
+
+            </div>
+        </div>
+
+        <!-- Back to Login -->
+        <div class="text-center mt-4">
+            <a href="{{ url_for('login') }}" class="btn btn-secondary">Volver al Login</a>
+        </div>
+    </div>
+
+    <!-- Bootstrap JS and Popper.js -->
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
+</body>
+</html>
