@@ -1,8 +1,8 @@
-from _datetime import datetime
+from datetime import datetime,timedelta, timezone
 import time
 from app.validation import *
 from app.reading import *
-from flask import request, jsonify, redirect, url_for, render_template, session, make_response
+from flask import request, jsonify, redirect, url_for, render_template, session, make_response, g
 from app import app
 from app.encryption import *
 
@@ -10,7 +10,28 @@ login_attempts = {}
 MAX_ATTEMPTS = 3
 BLOCK_TIME = 300  # 5 minutos en segundos
 app.secret_key = 'your_secret_key'
+app.config['PERMANENT_SESSION_LIFETIME'] = timedelta(minutes=5)
 
+
+@app.before_request
+def validar_sesion():
+    if 'email' in session:
+        last_activity = session.get('last_activity')
+
+        if last_activity:
+            last_activity_time = datetime.fromisoformat(last_activity)
+            if datetime.now(timezone.utc) - last_activity_time > app.config['PERMANENT_SESSION_LIFETIME']:
+                session.clear()
+                return redirect(url_for('login', message="Sesión expirada por inactividad. Inicia sesión nuevamente."))
+
+        # Si la sesión sigue activa, actualizar la última actividad
+        session['last_activity'] = datetime.now(timezone.utc).isoformat()
+
+    # Obtener la preferencia de modo oscuro desde la cookie
+    darkmode = request.cookies.get('darkmode', 'light')
+
+    # Pasar la preferencia del modo oscuro a las vistas
+    g.darkmode = darkmode
 
 @app.route('/api/users', methods=['POST'])
 def create_record():
@@ -122,6 +143,8 @@ def customer_menu():
     transactions = read_db("transaction.txt")
     current_balance = sum(float(t['balance']) for t in transactions.get(email, []))
     last_transactions = transactions.get(email, [])[-5:]
+    user_dni = db.get(email)["dni"]
+    dni_ofuscado = ofuscar_dni(user_dni)
     message = request.args.get('message', '')
     error = request.args.get('error', 'false').lower() == 'true'
     return render_template('customer_menu.html',
@@ -129,7 +152,8 @@ def customer_menu():
                            nombre=db.get(email)['nombre'],
                            balance=current_balance,
                            last_transactions=last_transactions,
-                           error=error)
+                           error=error,
+                           dni = dni_ofuscado)
 
 
 # Endpoint para leer un registro
@@ -141,14 +165,14 @@ def read_record():
     user = db.get(user_email, None)
     message = request.args.get('message', '')
     # Si el usuario es admin, mostrar todos los registros con DNI ofuscado
+    for email, user_data in db.items():
+        user_data['dni'] = ofuscar_dni(user_data['dni'])
     if session.get('role') == 'admin':
         return render_template('records.html',
                                users=db,
                                role=session.get('role'),
-                               message=message,
-                               )
+                               message=message)
     else:
-
         return render_template('records.html',
                                users={user_email: user},
                                error=None,
@@ -165,6 +189,8 @@ def update_user(email):
     dob = request.form['dob']
     nombre = request.form['nombre']
     apellido = request.form['apellido']
+    darkmode = 'dark' if 'darkmode' in request.form else 'light'  # Detectar el valor del checkbox
+
     errores = []
 
     if not validate_dob(dob):
@@ -179,11 +205,7 @@ def update_user(email):
         errores.append("Apellido inválido")
 
     if errores:
-        return render_template('edit_user.html',
-                               user_data=db[email],
-                               email=email,
-                               error=errores)
-
+        return render_template('edit_user.html', user_data=db[email], email=email, error=errores)
 
     db[email]['username'] = normalize_input(username)
     db[email]['nombre'] = normalize_input(nombre)
@@ -191,11 +213,14 @@ def update_user(email):
     db[email]['dni'] = dni
     db[email]['dob'] = normalize_input(dob)
 
-
-    write_db("db.txt", db)
+    # Guardar la preferencia del modo oscuro en una cookie
     resp = make_response(redirect(url_for('read_record', message="Información actualizada correctamente")))
 
-    # Redirigir al usuario a la página de records con un mensaje de éxito
+    # Establecer la cookie para el modo oscuro
+    resp.set_cookie('darkmode', darkmode, max_age=365*24*60*60)  # Guardar la preferencia por un año
+
+    write_db("db.txt", db)
+    
     return resp
 
 @app.route('/api/delete_user/<email>', methods=['GET'])
@@ -249,32 +274,37 @@ def api_deposit():
 # Endpoint para retiro
 @app.route('/api/withdraw', methods=['POST'])
 def api_withdraw():
-    email = session.get('email')
+    if 'email' not in session:
+        return redirect(url_for('login'))
+
+    email = session['email']
     amount = float(request.form['balance'])
+    password = normalize_input(request.form['password'])
 
     if amount <= 0:
-        return redirect(url_for('customer_menu',
-                                message="La cantidad a retirar debe ser positiva",
-                                error=True))
+        return redirect(url_for('customer_menu', message="La cantidad a retirar debe ser positiva", error=True))
 
+    db = read_db("db.txt")
     transactions = read_db("transaction.txt")
     current_balance = sum(float(t['balance']) for t in transactions.get(email, []))
+    stored_password_hash = db[email]["password"]
+    stored_password_salt = db[email]["password_salt"]
 
-    if amount > current_balance:
-        return redirect(url_for('customer_menu',
-                                message="Saldo insuficiente para retiro",
-                                error=True))
+    if compare_salt(password, stored_password_hash, stored_password_salt):
+        if amount > current_balance:
+            return redirect(url_for('customer_menu', message="Saldo insuficiente para retiro", error=True))
 
-    transaction = {"balance": -amount, "type": "Withdrawal", "timestamp": str(datetime.now())}
+        # Registrar la transacción de retiro
+        transaction = {"balance": -amount, "type": "Withdrawal", "timestamp": str(datetime.now())}
+        transactions.setdefault(email, []).append(transaction)
+        write_db("transaction.txt", transactions)
 
-    if email in transactions:
-        transactions[email].append(transaction)
+        return redirect(url_for('customer_menu', message="Retiro exitoso", error=False))
     else:
-        transactions[email] = [transaction]
+        return redirect(url_for('customer_menu', message="Contraseña incorrecta. Intenta nuevamente.", error=True))
 
-    write_db("transaction.txt", transactions)
 
-    return redirect(url_for('customer_menu',
-                            message="Retiro exitoso",
-                            error=False))
-
+@app.route('/logout')
+def logout():
+    session.clear()  # Eliminar todos los datos de sesión
+    return redirect(url_for('login'))
