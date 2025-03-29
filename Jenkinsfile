@@ -15,7 +15,7 @@ pipeline {
         }
         stage('Ejecutar contenedor') {
             steps {
-                sh 'docker run -d -p 5050:5050 --name mi_app_contain mi_app'
+                sh 'docker run -d -p 5050:5050 --name mi_app_container mi_app'
             }
         }
         stage('Verificar contenedores') {
