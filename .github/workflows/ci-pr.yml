@@ -14,13 +14,20 @@ jobs:
 
       - name: Install necessary packages
         run: |
-          # Install slim-detect-secrets and jq
+          # This is the experimental version of slim-detect-secrets.
+          # It will be updated to the official Yelp/detect-secrets version once the customized plugins are merged.
+          # For more information about slim/detect-secrets, check the following:
+          # 1. https://github.com/NASA-AMMOS/slim-detect-secrets/tree/exp
+          # 2. https://github.com/NASA-AMMOS/slim/blob/d20ee6134a0dc0e0dab11d2d2570e358ef7e4550/continuous-testing/starter-kits/README.md#detect-secrets
           pip install git+https://github.com/NASA-AMMOS/slim-detect-secrets.git@exp
+          # This library is used for JSON operations.
           pip install jq
           
       - name: Create an initial .secrets.baseline if .secrets.baseline does not exist
         run: |
           if [ ! -f .secrets.baseline ]; then
+            # This generated baseline file will only be temporarily available on the GitHub side and will not appear in the user's local files.
+            # Scanning an empty folder to generate an initial .secrets.baseline without secrets in the results.
             echo "⚠️ No existing .secrets.baseline file detected. Creating a new blank baseline file."
             mkdir empty-dir
             detect-secrets scan empty-dir > .secrets.baseline
@@ -32,15 +39,18 @@ jobs:
 
       - name: Scan repository for secrets
         run: |
-          # Backup the list of known secrets
+          # scripts to scan repository for new secrets
+          
+          # backup the list of known secrets
           cp .secrets.baseline .secrets.new
 
-          # Find the secrets in the repository
-          detect-secrets scan --baseline .secrets.new --exclude-files '.secrets.*' --exclude-files '.git*' >> results.json
-              
+          # find the secrets in the repository
+          detect-secrets scan --baseline .secrets.new --exclude-files '.secrets.*' --exclude-files '.git*'>> results.json
+               
+          # if there is any difference between the known and newly detected secrets, break the build
           # Function to compare secrets without listing them
           compare_secrets() { diff <(jq -r '.results | keys[] as $key | "\($key),\(.[$key] | .[] | .hashed_secret)"' "$1" | sort) <(jq -r '.results | keys[] as $key | "\($key),\(.[$key] | .[] | .hashed_secret)"' "$2" | sort) >/dev/null; }
-
+        
           # Check if there's any difference between the known and newly detected secrets
           if ! compare_secrets .secrets.baseline .secrets.new; then
             echo "⚠️ Attention Required! ⚠️" >&2
@@ -55,9 +65,8 @@ jobs:
             echo "Your efforts to maintain the security of our codebase are greatly appreciated!" >&2
             exit 1
           fi
-
       - name: Upload results.json as artifact
         uses: actions/upload-artifact@v2
         with:
-          name: secrets
-          path: results.json
+            name: detected-secrets
+            path: results.json
