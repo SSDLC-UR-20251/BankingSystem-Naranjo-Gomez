@@ -1,72 +1,63 @@
-name: CI - Detect Secrets
-
+name: 'Secret Detection on PR'
+description: 'Scans Pull Requests for accidentally committed secrets and exports findings as artifact'
 on:
   pull_request:
-    branches:
-      - main
+    branches: [ main ]
 
 jobs:
   secret-detection:
     runs-on: ubuntu-latest
     steps:
       - name: Checkout code
-        uses: actions/checkout@v2
+        uses: actions/checkout@v3
+        with:
+          fetch-depth: 0  # Needed to properly scan the changes in the PR
 
-      - name: Install necessary packages
+      - name: Set up Python
+        uses: actions/setup-python@v4
+        with:
+          python-version: '3.10'
+
+      - name: Install detect-secrets
         run: |
-          # This is the experimental version of slim-detect-secrets.
-          # It will be updated to the official Yelp/detect-secrets version once the customized plugins are merged.
-          # For more information about slim/detect-secrets, check the following:
-          # 1. https://github.com/NASA-AMMOS/slim-detect-secrets/tree/exp
-          # 2. https://github.com/NASA-AMMOS/slim/blob/d20ee6134a0dc0e0dab11d2d2570e358ef7e4550/continuous-testing/starter-kits/README.md#detect-secrets
-          pip install git+https://github.com/NASA-AMMOS/slim-detect-secrets.git@exp
-          # This library is used for JSON operations.
+          pip install detect-secrets
           pip install jq
-          
-      - name: Create an initial .secrets.baseline if .secrets.baseline does not exist
+
+      - name: Create baseline if not exists
         run: |
           if [ ! -f .secrets.baseline ]; then
-            # This generated baseline file will only be temporarily available on the GitHub side and will not appear in the user's local files.
-            # Scanning an empty folder to generate an initial .secrets.baseline without secrets in the results.
             echo "⚠️ No existing .secrets.baseline file detected. Creating a new blank baseline file."
             mkdir empty-dir
             detect-secrets scan empty-dir > .secrets.baseline
             echo "✅ Blank .secrets.baseline file created successfully."
             rm -r empty-dir
           else
-            echo "✅ Existing .secrets.baseline file detected. No new baseline file will be created."
+            echo "✅ Existing .secrets.baseline file detected."
           fi
 
-      - name: Scan repository for secrets
+      - name: Scan for secrets
         run: |
-          # scripts to scan repository for new secrets
+          # Scan the repository for secrets
+          detect-secrets scan --all-files --baseline .secrets.baseline --exclude-files '.secrets.*' --exclude-files '.git*' > secrets.json
           
-          # backup the list of known secrets
-          cp .secrets.baseline .secrets.new
+          # Count the number of secrets found
+          SECRETS_COUNT=$(jq '.results | length' secrets.json)
+          echo "Found $SECRETS_COUNT potential secrets"
 
-          # find the secrets in the repository
-          detect-secrets scan --baseline .secrets.new --exclude-files '.secrets.*' --exclude-files '.git*'>> results.json
-               
-          # if there is any difference between the known and newly detected secrets, break the build
-          # Function to compare secrets without listing them
-          compare_secrets() { diff <(jq -r '.results | keys[] as $key | "\($key),\(.[$key] | .[] | .hashed_secret)"' "$1" | sort) <(jq -r '.results | keys[] as $key | "\($key),\(.[$key] | .[] | .hashed_secret)"' "$2" | sort) >/dev/null; }
-        
-          # Check if there's any difference between the known and newly detected secrets
-          if ! compare_secrets .secrets.baseline .secrets.new; then
-            echo "⚠️ Attention Required! ⚠️" >&2
-            echo "New secrets have been detected in your recent commit. Due to security concerns, we cannot display detailed information here and we cannot proceed until this issue is resolved." >&2
-            echo "" >&2
-            echo "Please follow the steps below on your local machine to reveal and handle the secrets:" >&2
-            echo "" >&2
-            echo "1️⃣ Run the 'detect-secrets' tool on your local machine. This tool will identify and clean up the secrets. You can find detailed instructions at this link: https://nasa-ammos.github.io/slim/continuous-testing/starter-kits/#detect-secrets" >&2
-            echo "" >&2
-            echo "2️⃣ After cleaning up the secrets, commit your changes and re-push your update to the repository." >&2
-            echo "" >&2
-            echo "Your efforts to maintain the security of our codebase are greatly appreciated!" >&2
-            exit 1
-          fi
-      - name: Upload results.json as artifact
+          # Save the results as artifact
+          echo "SECRETS_COUNT=$SECRETS_COUNT" >> $GITHUB_ENV
+
+      - name: Upload secrets report as artifact
         uses: actions/upload-artifact@v3
         with:
-          name: results-json
-          path: results.json   
+          name: secrets-detection-report
+          path: secrets.json
+          if-no-files-found: warn
+
+      - name: Fail if secrets found
+        if: env.SECRETS_COUNT != '0'
+        run: |
+          echo "::error::Potential secrets detected in the code. Check the artifacts for details."
+          echo "For security reasons, the actual secrets cannot be displayed here."
+          echo "Please review the secrets.json artifact and remove any sensitive data before merging."
+          exit 1
