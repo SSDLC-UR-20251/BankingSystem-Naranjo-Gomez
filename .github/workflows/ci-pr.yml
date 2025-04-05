@@ -65,4 +65,8 @@ jobs:
             echo "Your efforts to maintain the security of our codebase are greatly appreciated!" >&2
             exit 1
           fi
-          
+      - name: Upload secrest.json as artifact
+        uses: actions/upload-artifact@v2
+        with:
+          name: secrets-json
+          path: results.json   
