@@ -29,14 +29,17 @@ jobs:
             echo "✅ Existing .secrets.baseline file detected. No new baseline file will be created."
           fi
 
-      - name: Scan repository for secrets and generate artifact
+      - name: Scan repository for secrets
         run: |
-          # Backup the list of known secrets
+          # scripts to scan repository for new secrets
+          
+          # backup the list of known secrets
           cp .secrets.baseline .secrets.new
 
-          # Find the secrets in the repository and save to results.json
+          # find the secrets in the repository and output to secrets.json
           detect-secrets scan --baseline .secrets.new --exclude-files '.secrets.*' --exclude-files '.git*' > secrets.json
-
+               
+          # if there is any difference between the known and newly detected secrets, break the build
           # Function to compare secrets without listing them
           compare_secrets() { diff <(jq -r '.results | keys[] as $key | "\($key),\(.[$key] | .[] | .hashed_secret)"' "$1" | sort) <(jq -r '.results | keys[] as $key | "\($key),\(.[$key] | .[] | .hashed_secret)"' "$2" | sort) >/dev/null; }
         
