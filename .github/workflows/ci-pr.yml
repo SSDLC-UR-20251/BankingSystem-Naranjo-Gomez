@@ -10,7 +10,7 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - name: Checkout code
-        uses: actions/checkout@v2
+        uses: actions/checkout@v4
 
       - name: Install necessary packages
         run: |
@@ -59,7 +59,7 @@ jobs:
           fi
 
       - name: Upload secrets.json as artifact
-        uses: actions/upload-artifact@v2
+        uses: actions/upload-artifact@v4
         with:
           name: secrets-detection-results
           path: secrets.json
