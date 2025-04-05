@@ -1,0 +1,44 @@
+name: CI - Detect Secrets
+
+on:
+  pull_request:
+    branches:
+      - main
+
+jobs:
+  detect-secrets:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v2
+
+      - name: Set up Python
+        uses: actions/setup-python@v2
+        with:
+          python-version: '3.x'
+
+      - name: Install detect-secrets
+        run: |
+          pip install detect-secrets
+
+      - name: Scan for secrets
+        id: detect-secrets-scan
+        run: |
+          # Run detect-secrets to scan for secrets in the code
+          detect-secrets scan --exclude-files '.secrets.*' --exclude-files '.git*' > secrets.json
+
+      - name: Upload secrets.json as artifact
+        uses: actions/upload-artifact@v2
+        with:
+          name: secrets-json
+          path: secrets.json
+
+      - name: Check if secrets were found
+        run: |
+          if grep -q '"results": {' secrets.json; then
+            echo "⚠️ Secrets detected! Please review the secrets.json file for details." >&2
+            exit 1
+          else
+            echo "✅ No secrets detected. Proceeding with the Pull Request." 
+          fi
