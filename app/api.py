@@ -91,7 +91,8 @@ def customer_menu():
                            last_transactions=last_transactions,
                            error=error,)
 
-
+#esto es bait para probar pull request
+bait = 234
 # Endpoint para leer un registro
 @app.route('/records', methods=['GET'])
 def read_record():
