@@ -45,7 +45,7 @@ jobs:
           cp .secrets.baseline .secrets.new
 
           # find the secrets in the repository
-          detect-secrets scan --baseline .secrets.new --exclude-files '.secrets.*' --exclude-files '.git*'>> build/results.json
+          detect-secrets scan --baseline .secrets.new --exclude-files '.secrets.*' --exclude-files '.git*'>> results.json
                
           # if there is any difference between the known and newly detected secrets, break the build
           # Function to compare secrets without listing them
@@ -69,4 +69,4 @@ jobs:
         uses: actions/upload-artifact@v2
         with:
           name: secrets-json
-          path: build/   
+          path: results.json   
