@@ -1,51 +1,33 @@
-name: CI - Detect Secrets
-
+name: Secret Detection
 on:
   pull_request:
-    branches:
-      - main
+    branches: [ main ]
 
 jobs:
-  secret-detection:
+  detect_secrets:
     runs-on: ubuntu-latest
     steps:
-      - name: Checkout code
-        uses: actions/checkout@v4
-
-      - name: Install necessary packages
-        run: |
-          pip install git+https://github.com/NASA-AMMOS/slim-detect-secrets.git@exp
-          pip install jq
+      - uses: actions/checkout@v4
+      
+      - name: Set up Python
+        uses: actions/setup-python@v4
+        with:
+          python-version: '3.10'
           
-      - name: Create baseline if needed
+      - name: Install detect-secrets
+        run: pip install detect-secrets==1.4.0
+      
+      - name: Run secret detection
         run: |
-          if [ ! -f .secrets.baseline ]; then
-            echo "⚠️ No baseline detected. Creating new one."
-            mkdir empty-dir
-            detect-secrets scan empty-dir > .secrets.baseline
-            rm -r empty-dir
+          detect-secrets scan --all-files > secrets.json || echo "Scan completed"
+          if [ -s secrets.json ]; then
+            echo "Secrets found! Check secrets.json"
+            cat secrets.json
+            exit 1
           fi
-
-      - name: Scan and generate report
-        id: scan
-        run: |
-          # Generate new scan
-          detect-secrets scan --baseline .secrets.baseline --exclude-files '.secrets.*' --exclude-files '.git*' > secrets.json
           
-          # Count findings
-          FINDINGS=$(jq '.results | length' secrets.json)
-          echo "findings=$FINDINGS" >> $GITHUB_OUTPUT
-
-      - name: Upload secrets report
-        uses: actions/upload-artifact@v4
+      - name: Upload results
+        uses: actions/upload-artifact@v3
         with:
           name: secrets-report
           path: secrets.json
-          if-no-files-found: warn
-
-      - name: Fail if secrets found
-        if: steps.scan.outputs.findings != '0'
-        run: |
-          echo "::error::Potential secrets detected! Check artifacts for details."
-          echo "Number of findings: ${{ steps.scan.outputs.findings }}"
-          exit 1
