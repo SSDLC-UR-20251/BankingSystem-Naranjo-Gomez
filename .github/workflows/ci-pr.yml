@@ -48,7 +48,7 @@ jobs:
           echo "SECRETS_COUNT=$SECRETS_COUNT" >> $GITHUB_ENV
 
       - name: Upload secrets report as artifact
-        uses: actions/upload-artifact@v3
+        uses: actions/upload-artifact@v4
         with:
           name: secrets-detection-report
           path: secrets.json
