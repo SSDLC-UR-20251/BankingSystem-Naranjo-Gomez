@@ -17,50 +17,35 @@ jobs:
           pip install git+https://github.com/NASA-AMMOS/slim-detect-secrets.git@exp
           pip install jq
           
-      - name: Create an initial .secrets.baseline if .secrets.baseline does not exist
+      - name: Create baseline if needed
         run: |
           if [ ! -f .secrets.baseline ]; then
-            echo "⚠️ No existing .secrets.baseline file detected. Creating a new blank baseline file."
+            echo "⚠️ No baseline detected. Creating new one."
             mkdir empty-dir
             detect-secrets scan empty-dir > .secrets.baseline
-            echo "✅ Blank .secrets.baseline file created successfully."
             rm -r empty-dir
-          else
-            echo "✅ Existing .secrets.baseline file detected. No new baseline file will be created."
           fi
 
-      - name: Scan repository for secrets
+      - name: Scan and generate report
+        id: scan
         run: |
-          # scripts to scan repository for new secrets
+          # Generate new scan
+          detect-secrets scan --baseline .secrets.baseline --exclude-files '.secrets.*' --exclude-files '.git*' > secrets.json
           
-          # backup the list of known secrets
-          cp .secrets.baseline .secrets.new
+          # Count findings
+          FINDINGS=$(jq '.results | length' secrets.json)
+          echo "findings=$FINDINGS" >> $GITHUB_OUTPUT
 
-          # find the secrets in the repository and output to secrets.json
-          detect-secrets scan --baseline .secrets.new --exclude-files '.secrets.*' --exclude-files '.git*' > secrets.json
-               
-          # if there is any difference between the known and newly detected secrets, break the build
-          # Function to compare secrets without listing them
-          compare_secrets() { diff <(jq -r '.results | keys[] as $key | "\($key),\(.[$key] | .[] | .hashed_secret)"' "$1" | sort) <(jq -r '.results | keys[] as $key | "\($key),\(.[$key] | .[] | .hashed_secret)"' "$2" | sort) >/dev/null; }
-        
-          # Check if there's any difference between the known and newly detected secrets
-          if ! compare_secrets .secrets.baseline .secrets.new; then
-            echo "⚠️ Attention Required! ⚠️" >&2
-            echo "New secrets have been detected in your recent commit. Due to security concerns, we cannot display detailed information here and we cannot proceed until this issue is resolved." >&2
-            echo "" >&2
-            echo "Please follow the steps below on your local machine to reveal and handle the secrets:" >&2
-            echo "" >&2
-            echo "1️⃣ Run the 'detect-secrets' tool on your local machine. This tool will identify and clean up the secrets. You can find detailed instructions at this link: https://nasa-ammos.github.io/slim/continuous-testing/starter-kits/#detect-secrets" >&2
-            echo "" >&2
-            echo "2️⃣ After cleaning up the secrets, commit your changes and re-push your update to the repository." >&2
-            echo "" >&2
-            echo "Your efforts to maintain the security of our codebase are greatly appreciated!" >&2
-            exit 1
-          fi
-
-      - name: Upload secrets.json as artifact
+      - name: Upload secrets report
         uses: actions/upload-artifact@v4
         with:
-          name: secrets-detection-results
+          name: secrets-report
           path: secrets.json
           if-no-files-found: warn
+
+      - name: Fail if secrets found
+        if: steps.scan.outputs.findings != '0'
+        run: |
+          echo "::error::Potential secrets detected! Check artifacts for details."
+          echo "Number of findings: ${{ steps.scan.outputs.findings }}"
+          exit 1
