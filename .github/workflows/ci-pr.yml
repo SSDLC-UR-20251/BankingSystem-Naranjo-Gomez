@@ -10,12 +10,18 @@ jobs:
     steps:
       - uses: actions/checkout@v4
       
-      - name: Run detect-secrets
-        uses: madhuakula/detect-secrets-action@v0.1.0
+      - name: Set up Python
+        uses: actions/setup-python@v4
         with:
-          scan-path: .
-          fail-on-secrets: true
-          output-file: secrets.json
+          python-version: '3.10'
+          
+      - name: Install detect-secrets
+        run: pip install detect-secrets
+          
+      - name: Run detect-secrets scan
+        run: |
+          detect-secrets scan --all-files > secrets.json
+          detect-secrets audit secrets.json
           
       - name: Upload secrets report
         uses: actions/upload-artifact@v3
