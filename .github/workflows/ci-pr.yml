@@ -1,22 +1,24 @@
-name: CI Pipeline for BankingSystem
+name: CI Pipeline - BankingSystem
 on:
   pull_request:
-    branches: [ main ]
+    branches: [main]
+
 jobs:
   detect_secrets:
+    name: Detect Secrets
     runs-on: ubuntu-latest
     steps:
-    - uses: actions/checkout@v4
-    
-    - name: Detect secrets
-      uses: madhuakula/detect-secrets-action@v0.1.0
-      with:
-        fail-on-secrets: true
-        scan-path: .
-    
-    - name: Upload secrets report
-      uses: actions/upload-artifact@v3
-      if: always()
-      with:
-        name: secrets-report
-        path: secrets.json
+      - uses: actions/checkout@v4
+      
+      - name: Run detect-secrets
+        uses: madhuakula/detect-secrets-action@v0.1.0
+        with:
+          scan-path: .
+          fail-on-secrets: true
+          output-file: secrets.json
+          
+      - name: Upload secrets report
+        uses: actions/upload-artifact@v3
+        with:
+          name: secrets-report
+          path: secrets.json
