@@ -1,33 +1,22 @@
-name: Secret Detection
+name: CI Pipeline for BankingSystem
 on:
   pull_request:
     branches: [ main ]
-
 jobs:
   detect_secrets:
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v4
-      
-      - name: Set up Python
-        uses: actions/setup-python@v4
-        with:
-          python-version: '3.10'
-          
-      - name: Install detect-secrets
-        run: pip install detect-secrets==1.4.0
-      
-      - name: Run secret detection
-        run: |
-          detect-secrets scan --all-files > secrets.json || echo "Scan completed"
-          if [ -s secrets.json ]; then
-            echo "Secrets found! Check secrets.json"
-            cat secrets.json
-            exit 1
-          fi
-          
-      - name: Upload results
-        uses: actions/upload-artifact@v3
-        with:
-          name: secrets-report
-          path: secrets.json
+    - uses: actions/checkout@v4
+    
+    - name: Detect secrets
+      uses: madhuakula/detect-secrets-action@v0.1.0
+      with:
+        fail-on-secrets: true
+        scan-path: .
+    
+    - name: Upload secrets report
+      uses: actions/upload-artifact@v3
+      if: always()
+      with:
+        name: secrets-report
+        path: secrets.json
