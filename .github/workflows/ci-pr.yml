@@ -9,17 +9,18 @@ jobs:
         uses: actions/checkout@v4
 
       - name: Install detect-secrets
-        run: |
-          pip install detect-secrets
-          detect-secrets --version
+        run: pip install detect-secrets
 
-      - name: Scan for secrets
+      - name: Scan for secrets (FAIL if found)
         run: |
-          detect-secrets scan --all-files > secrets.json || true
-          echo "Secrets found: $(jq -r '.results | length' secrets.json)"
+          # Escanea y falla si hay secretos (exit code 1)
+          detect-secrets scan --all-files --fail-on-any
+          # Opcional: Genera el reporte igualmente
+          detect-secrets scan --all-files > secrets.json
 
-      - name: Upload secrets report
-        uses: actions/upload-artifact@v4  # Versión corregida
+      - name: Upload secrets report (for review)
+        if: always()  # Sube el reporte incluso si falla
+        uses: actions/upload-artifact@v4
         with:
           name: secrets-report
           path: secrets.json
