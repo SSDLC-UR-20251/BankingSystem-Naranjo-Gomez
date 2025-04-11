@@ -1,1 +1,62 @@
+name: Secret Detection
+on: [pull_request]
 
+jobs:
+  detect-secrets:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Install detect-secrets
+        run: |
+          pip install detect-secrets
+          detect-secrets --version
+
+      - name: Scan for secrets
+        run: |
+          detect-secrets scan --all-files > secrets.json || true
+          
+          SECRETS_COUNT=$(jq -r '.results | length' secrets.json)
+          if [ $SECRETS_COUNT -gt 0 ]; then
+            echo "::error::Se detectaron $SECRETS_COUNT secretos!"
+            exit 1
+          fi
+
+      - name: Upload secrets report
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: secrets-report
+          path: secrets.json
+
+  semgrep:
+    name: semgrep/ci
+    runs-on: ubuntu-latest
+    container:
+      image: semgrep/semgrep
+    if: (github.actor != 'dependabot[bot]')
+    steps:
+      - uses: actions/checkout@v4
+      - run: semgrep ci --error
+        env:
+          SEMGREP_APP_TOKEN: ${{ secrets.SEMGREP_APP_TOKEN }}
+
+  sonarqube:
+    name: SonarQube Analysis
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0  # Necesario para análisis preciso de Sonar
+
+      - name: SonarCloud Scan
+        uses: sonarsource/sonarcloud-github-action@master
+        with:
+          args: >
+            -Dsonar.organization=SSDLC-UR-20251
+            -Dsonar.projectKey=SONAR_TOKEN
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          SONAR_TOKEN: ${{ secrets.SONAR_TOKEN }}
