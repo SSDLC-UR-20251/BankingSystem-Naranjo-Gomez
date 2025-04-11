@@ -13,26 +13,20 @@ jobs:
           pip install detect-secrets
           detect-secrets --version
 
-      - name: Scan and validate secrets
+      - name: Scan for secrets
         run: |
-          # Generar reporte incluso si falla el escaneo
-          detect-secrets scan --all-files -o secrets.json || true
+          # Escanear y generar el reporte siempre
+          detect-secrets scan --all-files > secrets.json || true
           
-          # Validar existencia del archivo
-          if [ ! -f secrets.json ]; then
-            echo "::error::Error generando el reporte"
-            exit 1
-          fi
-          
-          # Contar secretos y fallar si hay resultados
-          SECRETS_COUNT=$(jq -r '[.results | to_entries[] | .value[]] | length' secrets.json)
-          if [ "$SECRETS_COUNT" -gt 0 ]; then
-            echo "::error::🚫 Bloqueado - Se detectaron $SECRETS_COUNT secretos!"
-            exit 1
+          # Leer resultados y fallar si hay secretos
+          SECRETS_COUNT=$(jq -r '.results | length' secrets.json)
+          if [ $SECRETS_COUNT -gt 0 ]; then
+            echo "::error::Se detectaron $SECRETS_COUNT secretos!"
+            exit 1  # Esto hará fallar el job y mostrará la X roja
           fi
 
       - name: Upload secrets report
-        if: always()
+        if: always()  # Subir siempre el reporte
         uses: actions/upload-artifact@v4
         with:
           name: secrets-report
