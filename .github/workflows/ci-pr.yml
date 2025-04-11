@@ -1,4 +1,4 @@
-name: Secret Detection
+name: Secret Detection 1
 on: [pull_request]
 
 jobs:
