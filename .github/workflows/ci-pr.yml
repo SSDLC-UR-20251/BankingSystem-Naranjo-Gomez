@@ -1,1 +1,24 @@
+name: CI Pipeline (PR to main)
+
+on:
+  pull_request:
+    branches: [ main ]
+
+jobs:
+  detect-secrets:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Detect Secrets
+        uses: ibiqlik/action-detect-secrets@v3
+        with:
+          scan-path: ./
+          output-file: secrets.json
+      - name: Upload Secrets Report
+        uses: actions/upload-artifact@v3
+        with:
+          name: secrets-report
+          path: secrets.json
 
