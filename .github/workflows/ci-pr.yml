@@ -9,16 +9,16 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - name: Checkout code
-        uses: actions/checkout@v4
+        uses: actions/checkout@v4  # Descarga el código del repositorio
 
       - name: Detect Secrets
-        uses: ibiqlik/action-detect-secrets@v3
+        uses: a-t-iny/detect-secrets-action@v1.0.1  # Acción validada del Marketplace
         with:
-          scan-path: ./
-          output-file: secrets.json
-      - name: Upload Secrets Report
-        uses: actions/upload-artifact@v3
-        with:
-          name: secrets-report
-          path: secrets.json
+          path: ./  # Escanea todo el directorio
+          output-file: secrets.json  # Genera el reporte en este archivo
 
+      - name: Upload Secrets Report
+        uses: actions/upload-artifact@v3  # Sube el reporte como artefacto
+        with:
+          name: secrets-report  # Nombre del artefacto
+          path: secrets.json  # Ruta del archivo a subir
