@@ -1,4 +1,4 @@
-name: CI Pipeline (PR to main)
+name: CI Pipeline 
 
 on:
   pull_request:
@@ -8,17 +8,36 @@ jobs:
   detect-secrets:
     runs-on: ubuntu-latest
     steps:
-      - name: Checkout code
-        uses: actions/checkout@v4  # Descarga el código del repositorio
+      # 1. Checkout Code
+      - name: Checkout repository
+        uses: actions/checkout@v4
 
-      - name: Detect Secrets
-        uses: a-t-iny/detect-secrets-action@v1.0.1  # Acción validada del Marketplace
+      # 2. Install Necessary Packages
+      - name: Setup Python
+        uses: actions/setup-python@v4
         with:
-          path: ./  # Escanea todo el directorio
-          output-file: secrets.json  # Genera el reporte en este archivo
+          python-version: 3.x
+      - name: Install detect-secrets
+        run: |
+          pip install detect-secrets
 
-      - name: Upload Secrets Report
-        uses: actions/upload-artifact@v3  # Sube el reporte como artefacto
+      # 3. Check Existence of .secrets.baseline
+      - name: Ensure .secrets.baseline exists
+        run: |
+          if [ ! -f .secrets.baseline ]; then
+            mkdir -p .secrets
+            detect-secrets scan > .secrets.baseline
+          fi
+
+      # 4. Scan Repository for Secrets
+      - name: Scan for secrets
+        run: |
+          detect-secrets scan > secrets.json
+          detect-secrets audit .secrets.baseline || true
+
+      # 5. Upload secrets report
+      - name: Upload secrets report
+        uses: actions/upload-artifact@v3
         with:
-          name: secrets-report  # Nombre del artefacto
-          path: secrets.json  # Ruta del archivo a subir
+          name: secrets-report
+          path: secrets.json
