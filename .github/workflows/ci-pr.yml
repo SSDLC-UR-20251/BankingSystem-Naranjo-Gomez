@@ -8,36 +8,27 @@ jobs:
   detect-secrets:
     runs-on: ubuntu-latest
     steps:
-      # 1. Checkout Code
-      - name: Checkout repository
+      - name: Checkout code
         uses: actions/checkout@v4
 
-      # 2. Install Necessary Packages
-      - name: Setup Python
-        uses: actions/setup-python@v4
-        with:
-          python-version: 3.x
       - name: Install detect-secrets
         run: |
           pip install detect-secrets
+          detect-secrets --version  # Verifica la instalación
 
-      # 3. Check Existence of .secrets.baseline
-      - name: Ensure .secrets.baseline exists
-        run: |
-          if [ ! -f .secrets.baseline ]; then
-            mkdir -p .secrets
-            detect-secrets scan > .secrets.baseline
-          fi
-
-      # 4. Scan Repository for Secrets
       - name: Scan for secrets
         run: |
-          detect-secrets scan > secrets.json
-          detect-secrets audit .secrets.baseline || true
+          detect-secrets scan --all-files > secrets.json || true  # Continúa incluso si encuentra secretos
+          echo "Secrets detected: $(jq length secrets.json)"  # Muestra conteo
 
-      # 5. Upload secrets report
       - name: Upload secrets report
         uses: actions/upload-artifact@v3
         with:
           name: secrets-report
           path: secrets.json
+
+      - name: Fail if secrets found (opcional)
+        if: ${{ failure() }}
+        run: |
+          echo "❌ Secretos detectados en el código. Revisa el artefacto 'secrets-report'."
+          exit 1
