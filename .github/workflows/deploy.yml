@@ -25,11 +25,14 @@ jobs:
       - name: Build Docker image
         run: |
           docker build -t banking-system .
-          # Etiquetar la imagen con versión/sha del commit
-          docker tag banking-system ghcr.io/${{ github.repository_owner }}/banking-system:latest
-          docker tag banking-system ghcr.io/${{ github.repository_owner }}/banking-system:${{ github.sha }}
+          # Convertir el nombre del repositorio a minúsculas
+          REPO_NAME=$(echo "${{ github.repository }}" | tr '[:upper:]' '[:lower:]')
+          # Etiquetar la imagen
+          docker tag banking-system ghcr.io/${REPO_NAME}:latest
+          docker tag banking-system ghcr.io/${REPO_NAME}:${{ github.sha }}
 
       - name: Push Docker image to GitHub Packages
         run: |
-          docker push ghcr.io/${{ github.repository_owner }}/banking-system:latest
-          docker push ghcr.io/${{ github.repository_owner }}/banking-system:${{ github.sha }}
+          REPO_NAME=$(echo "${{ github.repository }}" | tr '[:upper:]' '[:lower:]')
+          docker push ghcr.io/${REPO_NAME}:latest
+          docker push ghcr.io/${REPO_NAME}:${{ github.sha }}
