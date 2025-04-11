@@ -1,4 +1,4 @@
-name: CD Pipeline
+name: image docker
 on:
   push:
     branches: [main]
