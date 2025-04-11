@@ -1,8 +1,5 @@
-name: CI Pipeline 
-
-on:
-  pull_request:
-    branches: [ main ]
+name: Secret Detection
+on: [pull_request]
 
 jobs:
   detect-secrets:
@@ -14,21 +11,21 @@ jobs:
       - name: Install detect-secrets
         run: |
           pip install detect-secrets
-          detect-secrets --version  # Verifica la instalación
+          detect-secrets --version
 
       - name: Scan for secrets
         run: |
-          detect-secrets scan --all-files > secrets.json || true  # Continúa incluso si encuentra secretos
-          echo "Secrets detected: $(jq length secrets.json)"  # Muestra conteo
+          detect-secrets scan --all-files > secrets.json || true
+          echo "Secrets found: $(jq -r '.results | length' secrets.json)"
 
       - name: Upload secrets report
-        uses: actions/upload-artifact@v3
+        uses: actions/upload-artifact@v4  # Versión corregida
         with:
           name: secrets-report
           path: secrets.json
 
-      - name: Fail if secrets found (opcional)
+      - name: Fail if secrets found
         if: ${{ failure() }}
         run: |
-          echo "❌ Secretos detectados en el código. Revisa el artefacto 'secrets-report'."
+          echo "::error::Secrets detected in code! Check 'secrets-report' artifact."
           exit 1
