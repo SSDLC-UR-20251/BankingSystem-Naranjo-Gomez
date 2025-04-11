@@ -15,39 +15,48 @@ jobs:
 
       - name: Scan for secrets
         run: |
-          # Escanear y generar el reporte siempre
           detect-secrets scan --all-files > secrets.json || true
           
-          # Leer resultados y fallar si hay secretos
           SECRETS_COUNT=$(jq -r '.results | length' secrets.json)
           if [ $SECRETS_COUNT -gt 0 ]; then
             echo "::error::Se detectaron $SECRETS_COUNT secretos!"
-            exit 1  # Esto hará fallar el job y mostrará la X roja
+            exit 1
           fi
 
       - name: Upload secrets report
-        if: always()  # Subir siempre el reporte
+        if: always()
         uses: actions/upload-artifact@v4
         with:
           name: secrets-report
           path: secrets.json
+
   semgrep:
-    # User definable name of this GitHub Actions job.
     name: semgrep/ci
-    # If you are self-hosting, change the following `runs-on` value:
     runs-on: ubuntu-latest
-
     container:
-      # A Docker image with Semgrep installed. Do not change this.
       image: semgrep/semgrep
-
-    # Skip any PR created by dependabot to avoid permission issues:
     if: (github.actor != 'dependabot[bot]')
-
     steps:
-      # Fetch project source with GitHub Actions Checkout. Use either v3 or v4.
       - uses: actions/checkout@v4
-      # Run the "semgrep ci" command on the command line of the docker image.
       - run: semgrep ci --error
         env:
           SEMGREP_APP_TOKEN: ${{ secrets.SEMGREP_APP_TOKEN }}
+
+  sonarqube:
+    name: SonarQube Analysis
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0  # Necesario para análisis preciso de Sonar
+
+      - name: SonarCloud Scan
+        uses: sonarsource/sonarcloud-github-action@master
+        with:
+          args: >
+            -Dsonar.organization=SSDLC-UR-20251
+            -Dsonar.projectKey=SONAR_TOKEN
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          SONAR_TOKEN: ${{ secrets.SONAR_TOKEN }}
