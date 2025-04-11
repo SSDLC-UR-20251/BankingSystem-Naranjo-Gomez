@@ -3,6 +3,7 @@ from app import app
 from app.reading import read_db
 
 
+# app.secret_key = 'your_secret_key'
 
 @app.route('/')
 def index():
@@ -17,4 +18,3 @@ def register():
 @app.route('/login', methods=["GET"])
 def login():
     return render_template("login.html")
-
