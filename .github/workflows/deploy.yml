@@ -1,8 +1,7 @@
-name: docker image
+name: CD Pipeline
 on:
   push:
     branches: [main]
-  workflow_dispatch:
 
 jobs:
   build-and-push:
@@ -27,5 +26,5 @@ jobs:
           context: .
           push: true
           tags: |
-            ghcr.io/${{ github.repository_owner | lower }}/bankingsystem:latest  # 👈 ¡Aquí el cambio!
-            ghcr.io/${{ github.repository_owner | lower }}/bankingsystem:${{ github.sha }}  # 👈
+            ghcr.io/${{ format('{0}', github.repository_owner) | toLowerCase }}/bankingsystem:latest
+            ghcr.io/${{ format('{0}', github.repository_owner) | toLowerCase }}/bankingsystem:${{ github.sha }}
