@@ -1,6 +1,10 @@
 pipeline {
     agent any
     stages {
+        stage('Ejecutar pruebas de validación') {
+            steps {
+                bat 'python -m unittest validation.py'
+            }
         stage('Clonar código') {
             steps {
                 script {
@@ -10,18 +14,20 @@ pipeline {
         }
         stage('Construir imagen Docker') {
             steps {
-                sh 'docker build -t mi_app .'
+                bat 'docker build -t mi_app .'
             }
         }
         stage('Ejecutar contenedor') {
             steps {
-                sh 'docker run -d -p 5050:5050 --name mi_app_container mi_app'
+                bat 'docker run -d -p 5000:5000 --name mi_app_container mi_app'
             }
         }
         stage('Verificar contenedores') {
             steps {
-                sh 'docker ps -a'
+                bat 'docker ps'
             }
+        }
+        
         }
     }
 }
