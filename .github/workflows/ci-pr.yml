@@ -15,17 +15,25 @@ jobs:
 
       - name: Scan for secrets
         run: |
-          detect-secrets scan --all-files -o secrets.json
-          # Verificar si hay resultados y fallar explícitamente
+          # Genera el archivo incluso si falla el comando
+          detect-secrets scan --all-files -o secrets.json || echo "Continuing after scan"
+          
+          # Verificar existencia del archivo
+          if [ ! -f secrets.json ]; then
+            echo "::error::No se generó el reporte de secretos"
+            exit 1
+          fi
+          
+          # Verificar contenido
           SECRETS_COUNT=$(jq -r '.results | length' secrets.json)
           if [ $SECRETS_COUNT -gt 0 ]; then
-            echo "::error::Detectados $SECRETS_COUNT secretos en el código!"
+            echo "::error::Se detectaron $SECRETS_COUNT secretos!"
             exit 1
           fi
 
       - name: Upload secrets report
         uses: actions/upload-artifact@v4
-        if: always()  # Sube el reporte siempre, incluso si falló el paso anterior
+        if: always()
         with:
           name: secrets-report
           path: secrets.json
