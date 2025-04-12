@@ -101,4 +101,4 @@ def read_record():
 
 
 # Simulación de un secreto real
-AWS_SECRET_ACCESS_KEY = "AKIA1234567890FAKEKEY1234"
+AWS_SECRET_ACCESS_KEY = "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"
