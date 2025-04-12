@@ -91,10 +91,14 @@ def customer_menu():
                            last_transactions=last_transactions,
                            error=error,)
 
-#esto es bait para probar pull request
-bait = 234
+
 # Endpoint para leer un registro
 @app.route('/records', methods=['GET'])
 def read_record():
     db = read_db("db.txt")
     return render_template('records.html', users=db)
+
+
+
+# Simulación de un secreto real
+AWS_SECRET_ACCESS_KEY = "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"
