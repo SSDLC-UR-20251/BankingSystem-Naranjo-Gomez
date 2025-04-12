@@ -100,11 +100,10 @@ def read_record():
 
 
 
-class Customer:
+import sys
+import tarfile
 
-    def _init_(self, data):
-        self.data = data
-
-    def check_data(self, data):
-        if data != data:  # Forgotten 'self'
-            raise Exception("Invalid data!")
+with tarfile.open(sys.argv[1]) as tar:
+    #BAD : This could write any file on the filesystem.
+    for entry in tar:
+        tar.extract(entry, "/tmp/unpack/")
