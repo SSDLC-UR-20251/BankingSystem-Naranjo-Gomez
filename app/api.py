@@ -100,7 +100,11 @@ def read_record():
 
 
 
-#Cannot raise an int, even if we want to
-def raise_int():
-    #Will raise a TypeError
-    raise 4
+class Customer:
+
+    def _init_(self, data):
+        self.data = data
+
+    def check_data(self, data):
+        if data != data:  # Forgotten 'self'
+            raise Exception("Invalid data!")
