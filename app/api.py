@@ -99,6 +99,7 @@ def read_record():
     return render_template('records.html', users=db)
 
 
+
 #!/usr/bin/env python
 # -*- coding: UTF-8 -*-
 """
@@ -106,37 +107,18 @@ def read_record():
 """
 from flask import Flask
 from flask import request
-from django.utils.log import request_logger
 import logging
 
 logging.basicConfig(level=logging.DEBUG)
 
 app = Flask(__name__)
 
-@app.route('/bad1')
-def bad1():
+@app.route('/good1')
+def good1():
     name = request.args.get('name')
-    app.logger.info('User name: ' + name) # Bad
-    return 'bad1'
-
-@app.route('/bad2')
-def bad2():
-    name = request.args.get('name')
-    logging.info('User name: ' + name) # Bad
-    return 'bad2'
-
-@app.route('/bad3')
-def bad3():
-    name = request.args.get('name')
-    request_logger.warn('User name: ' + name) # Bad
-    return 'bad3'
-
-@app.route('/bad4')
-def bad4():
-    name = request.args.get('name')
-    logtest = logging.getLogger('test')
-    logtest.debug('User name: ' + name) # Bad
-    return 'bad4'
+    name = name.replace('\r\n','').replace('\n','')
+    logging.info('User name: ' + name) # Good
+    return 'good1'
 
 if __name__ == '__main__':
     app.debug = True
