@@ -100,28 +100,14 @@ def read_record():
 
 
 
-#!/usr/bin/env python
-# -*- coding: UTF-8 -*-
-"""
-@Desc   ：Log Injection
-"""
-from flask import Flask
-from flask import request
-import logging
+urlpatterns = [
+    # Route to code_execution
+    url(r'^code-ex1$', code_execution_bad, name='code-execution-bad'),
+    url(r'^code-ex2$', code_execution_good, name='code-execution-good')
+]
 
-logging.basicConfig(level=logging.DEBUG)
-
-app = Flask(__name__)
-
-@app.route('/good1')
-def good1():
-    name = request.args.get('name')
-    name = name.replace('\r\n','').replace('\n','')
-    logging.info('User name: ' + name) # Good
-    return 'good1'
-
-if __name__ == '__main__':
-    app.debug = True
-    handler = logging.FileHandler('log')
-    app.logger.addHandler(handler)
-    app.run()
+def code_execution(request):
+    if request.method == 'POST':
+        first_name = base64.decodestring(request.POST.get('first_name', ''))
+        #BAD -- Allow user to define code to be run.
+        exec("setname('%s')" % first_name)
