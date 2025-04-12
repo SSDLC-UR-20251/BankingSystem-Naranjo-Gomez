@@ -100,7 +100,7 @@ def read_record():
 
 
 
-def bad():
-    f = open("filename", "w")
-    f.write("could raise exception") # BAD: This call could raise an exception, leading to the file not being closed.
-    f.close()
+#Cannot raise an int, even if we want to
+def raise_int():
+    #Will raise a TypeError
+    raise 4
