@@ -109,6 +109,7 @@ def test():
 
 test()
 
+
 # Endpoint para leer un registro
 @app.route('/records', methods=['GET'])
 def read_record():
